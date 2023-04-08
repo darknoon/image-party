@@ -2,30 +2,35 @@ import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
 
-import { RoomProvider, useOthers } from "@/lib/liveblocks/liveblocks.config"
+import { GameRound } from "@/lib/game"
+import {
+  RoomProvider,
+  useOthers,
+  useRoom,
+  useSelf,
+} from "@/lib/liveblocks/liveblocks.config"
 
 /**
  * This function is used when deploying an example on liveblocks.io.
  * You can ignore it completely if you run the example locally.
  */
-function useOverrideRoomId(roomId: string) {
+function useRoomId(): string {
   const { query } = useRouter()
-  const overrideRoomId = useMemo(() => {
-    return query?.roomId ? `${roomId}-${query.roomId}` : roomId
-  }, [query, roomId])
-
-  return overrideRoomId
+  return query.roomId as string
 }
 
 function Others() {
+  const self = useSelf()
   const users = useOthers()
   return (
     <div>
       <h1>Live Form Selection</h1>
+      <p>self: {JSON.stringify(self)}</p>
       {users.map(({ connectionId, presence, info }) => {
         return (
           <div>
-            {connectionId} - {presence.selectedId} - {JSON.stringify(info)}
+            <p>{presence.selectedEmoji}</p>
+            {connectionId} - {presence.selectedEmoji} - {JSON.stringify(info)}
           </div>
         )
       })}
@@ -56,18 +61,49 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
   }
 }
 
+function Room() {
+  const room = useRoom()
+  const storage = room.getStorageSnapshot()
+  return (
+    <div>
+      <h1>Current Room storage</h1>
+      <div>{JSON.stringify(storage)}</div>
+    </div>
+  )
+}
+
+function PickChoices({ round }: { round: GameRound }) {
+  return (
+    <div>
+      <h1>Round {round.id}</h1>
+      {round.choices.map((choice) => {
+        return (
+          <div>
+            <h2>{choice.title}</h2>
+            <ul>
+              {choice.choices.map((c) => {
+                return c.text
+              })}
+            </ul>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Page() {
-  const { query } = useRouter()
-  const roomId = useOverrideRoomId("nextjs-live-form-selection")
+  const roomId = useRoomId()
 
   return (
     <RoomProvider
       id={roomId}
       initialPresence={{
-        selectedId: null,
+        selectedEmoji: null,
       }}
     >
       <Others />
+      <Room />
     </RoomProvider>
   )
 }

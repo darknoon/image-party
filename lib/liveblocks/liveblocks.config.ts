@@ -1,6 +1,8 @@
 import { createClient } from "@liveblocks/client"
 import { createRoomContext } from "@liveblocks/react"
 
+import { GameRound } from "../game"
+
 const client = createClient({
   publicApiKey: process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY!,
 })
@@ -21,30 +23,6 @@ type Storage = {
   currentRoundId: string | null
 }
 
-type GameRound = {
-  id: string
-  choices: ChoiceGroup[]
-  phase: GamePhase
-}
-
-type GamePhase =
-  | "WaitingForPlayers"
-  | "WaitingForChoices"
-  | "GeneratingImage"
-  | "PickingImage"
-  | "Voting"
-  | "Results"
-
-type ChoiceGroup = {
-  id: string
-  title: string
-  choices: Choice[]
-}
-
-type Choice = {
-  text: string
-}
-
 // Optionally, UserMeta represents static/readonly metadata on each User, as
 // provided by your own custom auth backend (if used). Useful for data that
 // will not change during a session, like a User's name or avatar.
@@ -57,9 +35,14 @@ type Choice = {
 // room. Must be JSON-serializable.
 // type RoomEvent = {};
 
-export const { RoomProvider, useOthers, useUpdateMyPresence } =
-  createRoomContext<
-    Presence,
-    Storage
-    /* UserMeta, RoomEvent */
-  >(client)
+export const {
+  RoomProvider,
+  useOthers,
+  useUpdateMyPresence,
+  useRoom,
+  useSelf,
+} = createRoomContext<
+  Presence,
+  Storage
+  /* UserMeta, RoomEvent */
+>(client)
