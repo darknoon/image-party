@@ -9,7 +9,7 @@ const client = createClient({
 // and that will automatically be kept in sync. Accessible through the
 // `user.presence` property. Must be JSON-serializable.
 type Presence = {
-  selectedId: string | null
+  selectedEmoji: string | null
 }
 
 // Optionally, Storage represents the shared document that persists in the
@@ -17,8 +17,32 @@ type Presence = {
 // LiveList, LiveMap, LiveObject instances, for which updates are
 // automatically persisted and synced to all connected clients.
 type Storage = {
-  // animals: LiveList<string>,
-  // ...
+  gameRounds: GameRound[]
+  currentRoundId: string | null
+}
+
+type GameRound = {
+  id: string
+  choices: ChoiceGroup[]
+  phase: GamePhase
+}
+
+type GamePhase =
+  | "WaitingForPlayers"
+  | "WaitingForChoices"
+  | "GeneratingImage"
+  | "PickingImage"
+  | "Voting"
+  | "Results"
+
+type ChoiceGroup = {
+  id: string
+  title: string
+  choices: Choice[]
+}
+
+type Choice = {
+  text: string
 }
 
 // Optionally, UserMeta represents static/readonly metadata on each User, as
