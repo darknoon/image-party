@@ -117,6 +117,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 
 function Room() {
   const room = useRoom()
+  const self = useSelf()
   const snapshot = room.getStorageSnapshot()
   const currentRound: GameRound | null = useStorage((storage) => {
     console.log("Storage in use", storage)
@@ -127,6 +128,7 @@ function Room() {
   return (
     <div>
       <h1>Current Room storage</h1>
+      <h2>Hi, user {self.connectionId}</h2>
       <p>Round id {snapshot.get("currentRoundId")}</p>
       {/* <div>
         stnap gameRounds:
@@ -141,13 +143,35 @@ function Room() {
       {currentRound && currentRound.phase === "PickingElements" && (
         <PickChoices round={currentRound} />
       )}
+      {currentRound && currentRound.phase === "GeneratingImage" && (
+        <GenerateImage round={currentRound} />
+      )}
+    </div>
+  )
+}
+
+function GenerateImage({ round }: { round: GameRound }) {
+  const self = useSelf()
+  const connectionId = String(self.connectionId)
+
+  const userChoices = useStorage((storage) => {
+    const userChoices = storage.userChoices
+    const ourChoices = userChoices.get(connectionId)
+    return ourChoices ? ourChoices.get(round.id) : null
+  })
+
+  return (
+    <div>
+      <h1>Generating Image</h1>
+      <p>Round id {round.id}</p>
+      <p>Choices: {JSON.stringify(userChoices)}</p>
     </div>
   )
 }
 
 function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
-  const selfCxn = useSelf()
-  const connectionId = selfCxn ? String(selfCxn.connectionId) : "unknown"
+  const self = useSelf()
+  const connectionId = String(self.connectionId)
 
   const makeChoice = useMutation(({ storage }, index: number) => {
     // Read state when the mutation is called
@@ -191,7 +215,7 @@ function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
                 }
               )}
               onClick={() => makeChoice(index)}
-              disabled={!selfCxn}
+              disabled={!self}
             >
               {c.text}
             </button>
