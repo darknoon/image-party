@@ -1,6 +1,8 @@
 import { createClient } from "@liveblocks/client"
 import { createRoomContext } from "@liveblocks/react"
 
+import { GameRound } from "../game"
+
 const client = createClient({
   publicApiKey: process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY!,
 })
@@ -9,7 +11,7 @@ const client = createClient({
 // and that will automatically be kept in sync. Accessible through the
 // `user.presence` property. Must be JSON-serializable.
 type Presence = {
-  selectedId: string | null
+  selectedEmoji: string | null
 }
 
 // Optionally, Storage represents the shared document that persists in the
@@ -17,8 +19,8 @@ type Presence = {
 // LiveList, LiveMap, LiveObject instances, for which updates are
 // automatically persisted and synced to all connected clients.
 type Storage = {
-  // animals: LiveList<string>,
-  // ...
+  gameRounds: GameRound[]
+  currentRoundId: string | null
 }
 
 // Optionally, UserMeta represents static/readonly metadata on each User, as
@@ -33,9 +35,14 @@ type Storage = {
 // room. Must be JSON-serializable.
 // type RoomEvent = {};
 
-export const { RoomProvider, useOthers, useUpdateMyPresence } =
-  createRoomContext<
-    Presence,
-    Storage
-    /* UserMeta, RoomEvent */
-  >(client)
+export const {
+  RoomProvider,
+  useOthers,
+  useUpdateMyPresence,
+  useRoom,
+  useSelf,
+} = createRoomContext<
+  Presence,
+  Storage
+  /* UserMeta, RoomEvent */
+>(client)
