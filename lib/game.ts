@@ -48,7 +48,7 @@ export type GameRound = {
   phase: GamePhase
 }
 
-type GamePhase =
+export type GamePhase =
   | "WaitingForPlayers"
   | "PickingElements"
   | "GeneratingImage"
@@ -56,12 +56,12 @@ type GamePhase =
   | "Voting"
   | "Results"
 
-type ChoiceGroup = {
+export type ChoiceGroup = {
   id: string
   title: string
   choices: Choice[]
 }
 
-type Choice = {
+export type Choice = {
   text: string
 }

@@ -1,10 +1,12 @@
 import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
+import { ClientSideSuspense } from "@liveblocks/react"
 
-import { GameRound, exampleGameRound } from "@/lib/game"
+import { ChoiceGroup, GameRound, exampleGameRound } from "@/lib/game"
 import {
   RoomProvider,
+  useMutation,
   useOthers,
   useRoom,
   useSelf,
@@ -73,6 +75,12 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 function Room() {
   const room = useRoom()
   const storage = room.getStorageSnapshot()
+  if (storage) {
+    if (storage.get("gameRounds").length === 0) {
+      storage.set("gameRounds", [exampleGameRound])
+      storage.set("currentRoundId", exampleGameRound.id)
+    }
+  }
   const currentRound = exampleGameRound
   return (
     <div>
@@ -85,6 +93,47 @@ function Room() {
   )
 }
 
+function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
+  const selfCxn = useSelf()
+  const connectionId = selfCxn ? selfCxn.connectionId : "unknown"
+
+  const makeChoice = useMutation(({ storage }, index: number) => {
+    const allRounds = storage.get("gameRounds")
+    const currentRoundId = storage.get("currentRoundId")
+    const currentRound = allRounds.find((r) => r.id === currentRoundId)
+    const userChoices = currentRound.userChoices
+    // update our user's choice
+    const ourChoices = userChoices[connectionId]
+    const newChoices = {
+      ...ourChoices,
+      [group.id]: index,
+    }
+    userChoices[connectionId] = newChoices
+    // update the round
+    currentRound.userChoices = userChoices
+    // update the storage
+    storage.set("gameRounds", allRounds)
+  }, [])
+
+  return (
+    <ul>
+      {group.choices.map((c, index) => {
+        return (
+          <li className="">
+            <button
+              className="inline-block p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400"
+              onClick={() => makeChoice(index)}
+              disabled={!selfCxn}
+            >
+              {c.text}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 function PickChoices({ round }: { round: GameRound }) {
   return (
     <div>
@@ -93,15 +142,7 @@ function PickChoices({ round }: { round: GameRound }) {
         return (
           <div>
             <h2 className="text-lg font-bold">{choice.title}</h2>
-            <ul>
-              {choice.choices.map((c) => {
-                return (
-                  <li className="inline-block p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400">
-                    {c.text}
-                  </li>
-                )
-              })}
-            </ul>
+            <PickChoiceFromGroup group={choice} />
           </div>
         )
       })}
@@ -119,8 +160,14 @@ export default function Page() {
         selectedEmoji: null,
       }}
     >
-      <Others />
-      <Room />
+      <ClientSideSuspense fallback={<div>Loading...</div>}>
+        {() => (
+          <div>
+            <Others />
+            <Room />
+          </div>
+        )}
+      </ClientSideSuspense>
     </RoomProvider>
   )
 }

@@ -40,6 +40,7 @@ export const {
   useOthers,
   useUpdateMyPresence,
   useRoom,
+  useMutation,
   useSelf,
 } = createRoomContext<
   Presence,
