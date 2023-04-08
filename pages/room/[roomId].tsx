@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
 
-import { GameRound } from "@/lib/game"
+import { GameRound, exampleGameRound } from "@/lib/game"
 import {
   RoomProvider,
   useOthers,
@@ -64,10 +64,14 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 function Room() {
   const room = useRoom()
   const storage = room.getStorageSnapshot()
+  const currentRound = exampleGameRound
   return (
     <div>
       <h1>Current Room storage</h1>
       <div>{JSON.stringify(storage)}</div>
+      {currentRound.phase === "PickingElements" && (
+        <PickChoices round={currentRound} />
+      )}
     </div>
   )
 }
@@ -79,10 +83,14 @@ function PickChoices({ round }: { round: GameRound }) {
       {round.choices.map((choice) => {
         return (
           <div>
-            <h2>{choice.title}</h2>
+            <h2 className="text-lg font-bold">{choice.title}</h2>
             <ul>
               {choice.choices.map((c) => {
-                return c.text
+                return (
+                  <li className="inline-block p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400">
+                    {c.text}
+                  </li>
+                )
               })}
             </ul>
           </div>
