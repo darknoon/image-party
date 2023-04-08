@@ -1,4 +1,6 @@
-type UserId = string
+import { LiveList, LiveMap } from "@liveblocks/client"
+
+export type UserId = string
 
 export const exampleGameRound: GameRound = {
   id: "1",
@@ -37,14 +39,12 @@ export const exampleGameRound: GameRound = {
       ].map((text) => ({ text })),
     },
   ],
-  userChoices: {},
   phase: "PickingElements",
 }
 
 export type GameRound = {
   id: string
   choices: ChoiceGroup[]
-  userChoices: Record<UserId, Record<string, number>>
   phase: GamePhase
 }
 

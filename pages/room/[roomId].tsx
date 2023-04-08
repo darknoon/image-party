@@ -1,15 +1,19 @@
 import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
+import { LiveList, LiveMap } from "@liveblocks/client"
 import { ClientSideSuspense } from "@liveblocks/react"
+import clsx from "clsx"
 
 import { ChoiceGroup, GameRound, exampleGameRound } from "@/lib/game"
 import {
   RoomProvider,
+  initialStorage,
   useMutation,
   useOthers,
   useRoom,
   useSelf,
+  useStorage,
 } from "@/lib/liveblocks/liveblocks.config"
 
 /**
@@ -113,20 +117,34 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 
 function Room() {
   const room = useRoom()
-  const storage = room.getStorageSnapshot()
-  if (storage) {
-    const rounds = storage.get("gameRounds")
-    if (!rounds || rounds.length === 0) {
-      storage.set("gameRounds", [exampleGameRound])
-      storage.set("currentRoundId", exampleGameRound.id)
-    }
+  const stnap = room.getStorageSnapshot()
+  if (stnap) {
+    const rounds = stnap.get("gameRounds")
+    console.log("Storage", stnap)
+  } else {
+    console.log("No storage yet")
   }
-  const currentRound = exampleGameRound
+  const currentRound: GameRound | null = useStorage((storage) => {
+    console.log("Storage in use", storage)
+    const currentRoundId = storage.currentRoundId
+    const rounds = storage.gameRounds
+    return rounds.find((round) => round.id === currentRoundId) || null
+  })
   return (
     <div>
       <h1>Current Room storage</h1>
-      <div>{JSON.stringify(storage)}</div>
-      {currentRound.phase === "PickingElements" && (
+      <p>Round id {stnap.get("currentRoundId")}</p>
+      <div>
+        stnap gameRounds:
+        <pre className="font-mono">
+          {JSON.stringify(stnap.get("gameRounds"))}
+        </pre>
+      </div>
+      <div>
+        currentRound:
+        <pre className="font-mono">{JSON.stringify(currentRound)}</pre>
+      </div>
+      {currentRound && currentRound.phase === "PickingElements" && (
         <PickChoices round={currentRound} />
       )}
     </div>
@@ -135,25 +153,30 @@ function Room() {
 
 function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
   const selfCxn = useSelf()
-  const connectionId = selfCxn ? selfCxn.connectionId : "unknown"
+  const connectionId = selfCxn ? String(selfCxn.connectionId) : "unknown"
 
   const makeChoice = useMutation(({ storage }, index: number) => {
-    const allRounds = storage.get("gameRounds")
+    // Read state when the mutation is called
     const currentRoundId = storage.get("currentRoundId")
-    const currentRound = allRounds.find((r) => r.id === currentRoundId)
-    const userChoices = currentRound.userChoices
+    const userChoices = storage.get("userChoices")
     // update our user's choice
-    const ourChoices = userChoices[connectionId]
-    const newChoices = {
-      ...ourChoices,
-      [group.id]: index,
-    }
-    userChoices[connectionId] = newChoices
-    // update the round
-    currentRound.userChoices = userChoices
-    // update the storage
-    storage.set("gameRounds", allRounds)
+    const ourChoices = userChoices.get(connectionId) || new LiveMap()
+    userChoices.set(connectionId, ourChoices)
+    const roundChoices = ourChoices.get(currentRoundId) || new LiveMap()
+    ourChoices.set(currentRoundId, roundChoices)
+    roundChoices.set(group.id, index)
   }, [])
+
+  const userChoice = useStorage((storage) => {
+    const currentRoundId = storage.currentRoundId
+    const userChoices = storage.userChoices
+    if (!userChoices) return undefined
+    const ourChoices = userChoices.get(connectionId)
+    if (!ourChoices) return undefined
+    const roundChoices = ourChoices.get(currentRoundId)
+    if (!roundChoices) return undefined
+    return roundChoices.get(group.id)
+  })
 
   return (
     <ul>
@@ -161,7 +184,12 @@ function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
         return (
           <li className="inline-block" key={c.text}>
             <button
-              className="p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400"
+              className={clsx(
+                "p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400",
+                {
+                  "bg-slate-400": userChoice === index,
+                }
+              )}
               onClick={() => makeChoice(index)}
               disabled={!selfCxn}
             >
@@ -199,6 +227,7 @@ export default function Page() {
       initialPresence={{
         selectedEmoji: null,
       }}
+      initialStorage={initialStorage}
     >
       <ClientSideSuspense fallback={<div>Loading...</div>}>
         {() => (

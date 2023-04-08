@@ -1,7 +1,7 @@
-import { createClient } from "@liveblocks/client"
+import { LiveList, LiveMap, createClient } from "@liveblocks/client"
 import { createRoomContext } from "@liveblocks/react"
 
-import { GameRound } from "../game"
+import { GameRound, UserId, exampleGameRound } from "../game"
 
 const client = createClient({
   publicApiKey: process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY!,
@@ -19,9 +19,20 @@ type Presence = {
 // LiveList, LiveMap, LiveObject instances, for which updates are
 // automatically persisted and synced to all connected clients.
 type Storage = {
-  gameRounds: GameRound[]
+  gameRounds: LiveList<GameRound>
+  userChoices: LiveMap<UserId, RoundChoicesForUser>
   currentRoundId: string | null
 }
+
+export const initialStorage: Storage = {
+  gameRounds: new LiveList<GameRound>([exampleGameRound]),
+  userChoices: new LiveMap(),
+  currentRoundId: exampleGameRound.id,
+}
+
+type RoundId = GameRound["id"]
+type ChoiceGroupId = string
+type RoundChoicesForUser = LiveMap<RoundId, LiveMap<ChoiceGroupId, number>>
 
 // Optionally, UserMeta represents static/readonly metadata on each User, as
 // provided by your own custom auth backend (if used). Useful for data that
@@ -36,12 +47,15 @@ type Storage = {
 // type RoomEvent = {};
 
 export const {
-  RoomProvider,
-  useOthers,
-  useUpdateMyPresence,
-  useRoom,
-  useMutation,
-  useSelf,
+  suspense: {
+    RoomProvider,
+    useOthers,
+    useUpdateMyPresence,
+    useRoom,
+    useStorage,
+    useMutation,
+    useSelf,
+  },
 } = createRoomContext<
   Presence,
   Storage
