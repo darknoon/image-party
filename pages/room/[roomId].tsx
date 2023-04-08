@@ -22,14 +22,53 @@ function useRoomId(): string {
 }
 
 function onEmojiClick(user) {
-  console.log(user);
+  console.log(user)
 }
 
 function Others() {
   const self = useSelf()
   const users = useOthers()
 
-  const emojiOptions = ["🦊", "🦝", "🦦", "🦔", "🐘", "🦏", "🦛", "🦒", "🐪", "🦌", "🦜", "🦢", "🐿️", "🦔", "🐁", "🐇", "🦘", "🦥", "🦦", "🐾", "🦕", "🦖", "🦈", "🐬", "🦭", "🦦", "🐊", "🐢", "🐍", "🦎", "🐙", "🦑", "🦞", "🦐", "🐠", "🐟", "🐡", "🦜"];
+  const emojiOptions = [
+    "🦊",
+    "🦝",
+    "🦦",
+    "🦔",
+    "🐘",
+    "🦏",
+    "🦛",
+    "🦒",
+    "🐪",
+    "🦌",
+    "🦜",
+    "🦢",
+    "🐿️",
+    "🦔",
+    "🐁",
+    "🐇",
+    "🦘",
+    "🦥",
+    "🦦",
+    "🐾",
+    "🦕",
+    "🦖",
+    "🦈",
+    "🐬",
+    "🦭",
+    "🦦",
+    "🐊",
+    "🐢",
+    "🐍",
+    "🦎",
+    "🐙",
+    "🦑",
+    "🦞",
+    "🦐",
+    "🐠",
+    "🐟",
+    "🐡",
+    "🦜",
+  ]
 
   return (
     <div>
@@ -37,7 +76,7 @@ function Others() {
         return (
           <div onClick={() => onEmojiClick(JSON.stringify(self))}>{emoji}</div>
         )
-        })}
+      })}
       {/* // <h1>Live Form Selection</h1>
       // <p>self: {JSON.stringify(self)}</p>
       {users.map(({ connectionId, presence, info }) => {
@@ -76,7 +115,8 @@ function Room() {
   const room = useRoom()
   const storage = room.getStorageSnapshot()
   if (storage) {
-    if (storage.get("gameRounds").length === 0) {
+    const rounds = storage.get("gameRounds")
+    if (!rounds || rounds.length === 0) {
       storage.set("gameRounds", [exampleGameRound])
       storage.set("currentRoundId", exampleGameRound.id)
     }
@@ -119,9 +159,9 @@ function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
     <ul>
       {group.choices.map((c, index) => {
         return (
-          <li className="">
+          <li className="inline-block" key={c.text}>
             <button
-              className="inline-block p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400"
+              className="p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400"
               onClick={() => makeChoice(index)}
               disabled={!selfCxn}
             >
@@ -142,7 +182,7 @@ function PickChoices({ round }: { round: GameRound }) {
         return (
           <div>
             <h2 className="text-lg font-bold">{choice.title}</h2>
-            <PickChoiceFromGroup group={choice} />
+            <PickChoiceFromGroup group={choice} key={choice.id} />
           </div>
         )
       })}
