@@ -17,18 +17,30 @@ function useOverrideRoomId(roomId: string) {
   return overrideRoomId
 }
 
+function onEmojiClick(users) {
+  console.log(users);
+}
+
 function Others() {
   const users = useOthers()
+
+  const emojiOptions = ["🦊", "🦝", "🦦", "🦔", "🐘", "🦏", "🦛", "🦒", "🐪", "🦌", "🦜", "🦢", "🐿️", "🦔", "🐁", "🐇", "🦘", "🦥", "🦦", "🐾", "🦕", "🦖", "🦈", "🐬", "🦭", "🦦", "🐊", "🐢", "🐍", "🦎", "🐙", "🦑", "🦞", "🦐", "🐠", "🐟", "🐡", "🦜"];
+
   return (
     <div>
-      <h1>Live Form Selection</h1>
-      {users.map(({ connectionId, presence, info }) => {
+      {emojiOptions.map((emoji) => {
         return (
+          <div onClick={() => onEmojiClick(users)}>{emoji}</div>
+        )
+      })}
+      {/* {users.map(({ connectionId, presence, info }) => {
+        return (
+          
           <div>
             {connectionId} - {presence.selectedId} - {JSON.stringify(info)}
           </div>
         )
-      })}
+      })} */}
     </div>
   )
 }
