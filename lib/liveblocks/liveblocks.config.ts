@@ -12,6 +12,7 @@ const client = createClient({
 // `user.presence` property. Must be JSON-serializable.
 type Presence = {
   selectedEmoji: string | null
+  selectedColor: string | null
 }
 
 // Optionally, Storage represents the shared document that persists in the
@@ -41,6 +42,7 @@ export const {
   useUpdateMyPresence,
   useRoom,
   useSelf,
+  useMyPresence,
 } = createRoomContext<
   Presence,
   Storage
