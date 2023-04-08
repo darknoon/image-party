@@ -117,13 +117,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 
 function Room() {
   const room = useRoom()
-  const stnap = room.getStorageSnapshot()
-  if (stnap) {
-    const rounds = stnap.get("gameRounds")
-    console.log("Storage", stnap)
-  } else {
-    console.log("No storage yet")
-  }
+  const snapshot = room.getStorageSnapshot()
   const currentRound: GameRound | null = useStorage((storage) => {
     console.log("Storage in use", storage)
     const currentRoundId = storage.currentRoundId
@@ -133,8 +127,8 @@ function Room() {
   return (
     <div>
       <h1>Current Room storage</h1>
-      <p>Round id {stnap.get("currentRoundId")}</p>
-      <div>
+      <p>Round id {snapshot.get("currentRoundId")}</p>
+      {/* <div>
         stnap gameRounds:
         <pre className="font-mono">
           {JSON.stringify(stnap.get("gameRounds"))}
@@ -143,7 +137,7 @@ function Room() {
       <div>
         currentRound:
         <pre className="font-mono">{JSON.stringify(currentRound)}</pre>
-      </div>
+      </div> */}
       {currentRound && currentRound.phase === "PickingElements" && (
         <PickChoices round={currentRound} />
       )}
@@ -160,10 +154,16 @@ function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
     const currentRoundId = storage.get("currentRoundId")
     const userChoices = storage.get("userChoices")
     // update our user's choice
-    const ourChoices = userChoices.get(connectionId) || new LiveMap()
-    userChoices.set(connectionId, ourChoices)
-    const roundChoices = ourChoices.get(currentRoundId) || new LiveMap()
-    ourChoices.set(currentRoundId, roundChoices)
+    let ourChoices = userChoices.get(connectionId)
+    if (!ourChoices) {
+      ourChoices = new LiveMap()
+      userChoices.set(connectionId, ourChoices)
+    }
+    let roundChoices = ourChoices.get(currentRoundId)
+    if (!roundChoices) {
+      roundChoices = new LiveMap()
+      ourChoices.set(currentRoundId, roundChoices)
+    }
     roundChoices.set(group.id, index)
   }, [])
 
