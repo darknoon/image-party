@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
 
-import { RoomProvider } from "@/lib/liveblocks/liveblocks.config"
+import { RoomProvider, useOthers } from "@/lib/liveblocks/liveblocks.config"
 
 /**
  * This function is used when deploying an example on liveblocks.io.
@@ -17,13 +17,18 @@ function useOverrideRoomId(roomId: string) {
   return overrideRoomId
 }
 
-function Example() {
+function Others() {
+  const users = useOthers()
   return (
     <div>
       <h1>Live Form Selection</h1>
-      <p>
-        This example demonstrates how to use Liveblocks to create a live form
-      </p>
+      {users.map(({ connectionId, presence, info }) => {
+        return (
+          <div>
+            {connectionId} - {presence.selectedId} - {JSON.stringify(info)}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -52,6 +57,7 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 }
 
 export default function Page() {
+  const { query } = useRouter()
   const roomId = useOverrideRoomId("nextjs-live-form-selection")
 
   return (
@@ -61,7 +67,7 @@ export default function Page() {
         selectedId: null,
       }}
     >
-      <Example />
+      <Others />
     </RoomProvider>
   )
 }
