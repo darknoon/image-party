@@ -1,14 +1,20 @@
 import { useMemo } from "react"
 import { GetStaticPaths, NextPageContext } from "next"
 import { useRouter } from "next/router"
+import { LiveList, LiveMap } from "@liveblocks/client"
+import { ClientSideSuspense } from "@liveblocks/react"
+import clsx from "clsx"
 
-import { GameRound, exampleGameRound } from "@/lib/game"
+import { ChoiceGroup, GameRound, exampleGameRound } from "@/lib/game"
 import {
   RoomProvider,
+  initialStorage,
+  useMutation,
   useOthers,
   useRoom,
   useSelf,
   useMyPresence,
+  useStorage,
 } from "@/lib/liveblocks/liveblocks.config"
 
 /**
@@ -19,7 +25,6 @@ function useRoomId(): string {
   const { query } = useRouter()
   return query.roomId as string
 }
-
 
 
 function Others() {
@@ -119,16 +124,112 @@ export const getStaticPaths: GetStaticPaths<{ slug: string }> = async () => {
 
 function Room() {
   const room = useRoom()
-  const storage = room.getStorageSnapshot()
-  const currentRound = exampleGameRound
+  const self = useSelf()
+  const snapshot = room.getStorageSnapshot()
+  const currentRound: GameRound | null = useStorage((storage) => {
+    console.log("Storage in use", storage)
+    const currentRoundId = storage.currentRoundId
+    const rounds = storage.gameRounds
+    return rounds.find((round) => round.id === currentRoundId) || null
+  })
   return (
     <div>
       <h1>Current Room storage</h1>
-      <div>{JSON.stringify(storage)}</div>
-      {currentRound.phase === "PickingElements" && (
+      <h2>Hi, user {self.connectionId}</h2>
+      <p>Round id {snapshot.get("currentRoundId")}</p>
+      {/* <div>
+        stnap gameRounds:
+        <pre className="font-mono">
+          {JSON.stringify(stnap.get("gameRounds"))}
+        </pre>
+      </div>
+      <div>
+        currentRound:
+        <pre className="font-mono">{JSON.stringify(currentRound)}</pre>
+      </div> */}
+      {currentRound && currentRound.phase === "PickingElements" && (
         <PickChoices round={currentRound} />
       )}
+      {currentRound && currentRound.phase === "GeneratingImage" && (
+        <GenerateImage round={currentRound} />
+      )}
     </div>
+  )
+}
+
+function GenerateImage({ round }: { round: GameRound }) {
+  const self = useSelf()
+  const connectionId = String(self.connectionId)
+
+  const userChoices = useStorage((storage) => {
+    const userChoices = storage.userChoices
+    const ourChoices = userChoices.get(connectionId)
+    return ourChoices ? ourChoices.get(round.id) : null
+  })
+
+  return (
+    <div>
+      <h1>Generating Image</h1>
+      <p>Round id {round.id}</p>
+      <p>Choices: {JSON.stringify(userChoices)}</p>
+    </div>
+  )
+}
+
+function PickChoiceFromGroup({ group }: { group: ChoiceGroup }) {
+  const self = useSelf()
+  const connectionId = String(self.connectionId)
+
+  const makeChoice = useMutation(({ storage }, index: number) => {
+    // Read state when the mutation is called
+    const currentRoundId = storage.get("currentRoundId")
+    const userChoices = storage.get("userChoices")
+    // update our user's choice
+    let ourChoices = userChoices.get(connectionId)
+    if (!ourChoices) {
+      ourChoices = new LiveMap()
+      userChoices.set(connectionId, ourChoices)
+    }
+    let roundChoices = ourChoices.get(currentRoundId)
+    if (!roundChoices) {
+      roundChoices = new LiveMap()
+      ourChoices.set(currentRoundId, roundChoices)
+    }
+    roundChoices.set(group.id, index)
+  }, [])
+
+  const userChoice = useStorage((storage) => {
+    const currentRoundId = storage.currentRoundId
+    const userChoices = storage.userChoices
+    if (!userChoices) return undefined
+    const ourChoices = userChoices.get(connectionId)
+    if (!ourChoices) return undefined
+    const roundChoices = ourChoices.get(currentRoundId)
+    if (!roundChoices) return undefined
+    return roundChoices.get(group.id)
+  })
+
+  return (
+    <ul>
+      {group.choices.map((c, index) => {
+        return (
+          <li className="inline-block" key={c.text}>
+            <button
+              className={clsx(
+                "p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400",
+                {
+                  "bg-slate-400": userChoice === index,
+                }
+              )}
+              onClick={() => makeChoice(index)}
+              disabled={!self}
+            >
+              {c.text}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -140,15 +241,7 @@ function PickChoices({ round }: { round: GameRound }) {
         return (
           <div>
             <h2 className="text-lg font-bold">{choice.title}</h2>
-            <ul>
-              {choice.choices.map((c) => {
-                return (
-                  <li className="inline-block p-3 m-3 rounded-lg bg-slate-300 hover:bg-slate-400">
-                    {c.text}
-                  </li>
-                )
-              })}
-            </ul>
+            <PickChoiceFromGroup group={choice} key={choice.id} />
           </div>
         )
       })}
@@ -166,10 +259,17 @@ export default function Page() {
         selectedEmoji: null,
         selectedColor: '#000',
       }}
+      initialStorage={initialStorage}
     >
-      
-      <Room />
-      <Others />
+      <ClientSideSuspense fallback={<div>Loading...</div>}>
+        {() => (
+          <div>
+            
+            <Room />
+            <Others />
+          </div>
+        )}
+      </ClientSideSuspense>
     </RoomProvider>
   )
 }
